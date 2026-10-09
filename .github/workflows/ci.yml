@@ -1,0 +1,63 @@
+# Runs on every push and pull request. Make it a merge gate in GitHub:
+# Settings -> Branches -> Add rule for "main" -> "Require status checks to pass" -> pick
+# the three jobs below. A red check then blocks the merge.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:   # a new push cancels the still-running CI of the previous push
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install ruff==0.16.10
+      - run: ruff check .
+      - run: ruff format --check src tests scripts dags dashboard
+
+  test-and-dbt:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11", cache: pip}
+      - uses: actions/setup-java@v4          # PySpark needs a JVM
+        with: {distribution: temurin, java-version: "17"}
+      - name: Install
+        run: |
+          pip install -r requirements.txt pyspark==4.0.1 delta-spark==4.0.1
+          pip install -e .
+      - name: Unit tests (ingestion, silver, gold, streaming transforms)
+        run: pytest -q
+      - name: Build synthetic gold fixture
+        run: python scripts/make_ci_fixture.py ci_fixture
+      - name: dbt build (all models, tests and contracts)
+        working-directory: dbt
+        env:
+          LAKEHOUSE_GOLD: ${{ github.workspace }}/ci_fixture/gold
+        run: |
+          dbt build --profiles-dir . --target ci --vars '{gold_format: parquet}'
+
+  airflow-dag:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Install Airflow with its official constraints
+        run: |
+          pip install "apache-airflow==3.2.2" pytest pyyaml python-dotenv \
+            --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-3.2.2/constraints-3.11.txt"
+      - name: DAG integrity tests
+        env: {AIRFLOW_HOME: /tmp/airflow}
+        run: pytest -q tests/test_dag.py

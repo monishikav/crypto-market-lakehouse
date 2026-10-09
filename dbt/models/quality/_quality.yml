@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: dq_daily_completeness
+    description: Missing one-minute candles per coin per day (expected 1,440).
+    columns:
+      - name: missing_minutes
+        data_tests:
+          - expression_is_true:
+              arguments: {expression: "missing_minutes = 0"}
+              config:
+                severity: warn   # report gaps, but don't block the pipeline on them

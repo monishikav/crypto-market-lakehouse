@@ -1,0 +1,36 @@
+version: 2
+
+sources:
+  - name: gold
+    description: Star schema built by Spark (src/lakehouse/transform/gold_star.py), stored as Delta.
+    config:
+      meta:
+        # dbt-duckdb reads external files directly; {name} becomes the table name below.
+        external_location: >-
+          {%- if var('gold_format') == 'delta' -%}
+          delta_scan('{{ env_var('LAKEHOUSE_GOLD', '../data/gold') }}/{name}')
+          {%- else -%}
+          read_parquet('{{ env_var('LAKEHOUSE_GOLD', '../data/gold') }}/{name}/**/*.parquet', hive_partitioning = true)
+          {%- endif -%}
+    tables:
+      - name: fact_prices
+        description: One row per coin per minute (grain = coin x minute x exchange).
+        columns:
+          - name: coin_key
+            data_tests: [not_null]
+          - name: date_key
+            data_tests: [not_null]
+          - name: open_time
+            data_tests: [not_null]
+      - name: dim_coin
+        columns:
+          - name: coin_key
+            data_tests: [unique, not_null]
+      - name: dim_date
+        columns:
+          - name: date_key
+            data_tests: [unique, not_null]
+      - name: dim_exchange
+        columns:
+          - name: exchange_key
+            data_tests: [unique, not_null]

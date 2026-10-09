@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: int_prices_daily
+    description: Daily OHLCV per coin, aggregated from minute candles.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [coin_key, price_date]}
+      - expression_is_true:
+          arguments: {expression: "high_price >= low_price"}
+      - expression_is_true:
+          arguments:
+            expression: >-
+              open_price between low_price and high_price
+              and close_price between low_price and high_price
+    columns:
+      - name: minutes_observed
+        data_tests:
+          - expression_is_true:
+              arguments: {expression: "minutes_observed between 1 and 1440"}
+  - name: int_returns_daily
+    description: Daily simple and log returns plus taker-buy ratio.

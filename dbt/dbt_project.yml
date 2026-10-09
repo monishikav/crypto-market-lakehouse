@@ -1,0 +1,31 @@
+name: crypto_lakehouse
+version: "1.0.0"
+config-version: 2
+profile: crypto_lakehouse
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Gold location: env var LAKEHOUSE_GOLD (default ../data/gold, relative to this folder).
+  # delta  -> DuckDB reads the Delta transaction log (correct even after MERGE/overwrite)
+  # parquet-> plain Parquet files; used by CI with a small fixture
+  gold_format: delta
+
+models:
+  crypto_lakehouse:
+    staging:
+      +materialized: view        # thin renames/casts: no need to copy 10M rows
+      +schema: staging
+    intermediate:
+      +materialized: table
+      +schema: intermediate
+    marts:
+      +materialized: table       # what BI tools query: precomputed, fast
+      +schema: marts
+    quality:
+      +materialized: table
+      +schema: quality

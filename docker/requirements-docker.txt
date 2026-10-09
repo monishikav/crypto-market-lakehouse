@@ -1,0 +1,11 @@
+# Installed into the Docker image on top of Airflow (with Airflow's constraints file, so
+# Airflow's own dependencies are never upgraded underneath it).
+# Spark 4.0 <-> Delta 4.0 is a matched pair: Delta's jar is compiled per Spark version.
+pyspark==4.0.1
+delta-spark==4.0.1
+python-dotenv
+pyyaml
+requests
+websocket-client
+confluent-kafka
+boto3

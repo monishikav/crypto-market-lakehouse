@@ -1,0 +1,42 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets
+.env
+
+# Lakehouse data (never commit data - it's reproducible from the pipeline)
+data/
+*.zip
+*.parquet
+
+# Spark
+spark-warehouse/
+metastore_db/
+derby.log
+
+# dbt
+dbt/**/target/
+dbt/**/logs/
+dbt/**/dbt_packages/
+*.duckdb
+*.duckdb.wal
+
+# Airflow
+logs/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# CI fixture (generated)
+ci_fixture/
+
+# dbt local user/telemetry id (machine-specific)
+dbt/.user.yml

@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: stg_prices_minute
+    description: Minute candles with friendly names. View over gold.fact_prices.
+    columns:
+      - name: open_time_utc
+        data_tests: [not_null]
+  - name: stg_coins
+    description: Coin attributes from the latest CoinGecko + Binance snapshot.
+    columns:
+      - name: symbol
+        data_tests: [unique, not_null]
+  - name: stg_dates
+    description: Calendar attributes per day.
+  - name: stg_exchanges
+    description: Trading venues (Binance today; the streaming lane reuses it).

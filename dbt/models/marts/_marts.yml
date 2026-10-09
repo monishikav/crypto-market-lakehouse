@@ -1,0 +1,143 @@
+version: 2
+
+models:
+  - name: dim_coin
+    description: One row per traded coin (20). Attributes from CoinGecko + Binance.
+    columns:
+      - name: coin_key
+        data_tests: [unique, not_null]
+      - name: symbol
+        data_tests: [unique, not_null]
+
+  - name: dim_date
+    description: Calendar dimension, one row per UTC day.
+    columns:
+      - name: date_key
+        data_tests: [unique, not_null]
+
+  - name: fct_daily_prices
+    description: >
+      Daily OHLCV per coin with returns, 7/30-day simple moving averages, 30-day
+      annualized volatility and drawdown from running peak. Enforced contract.
+    config:
+      contract:
+        enforced: true
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [coin_key, price_date]}
+    columns:
+      - name: coin_key
+        data_type: bigint
+        constraints: [{type: not_null}]
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_coin'), field: coin_key}}
+      - name: date_key
+        data_type: integer
+        constraints: [{type: not_null}]
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_date'), field: date_key}}
+      - name: exchange_key
+        data_type: bigint
+      - name: symbol
+        data_type: varchar
+      - name: price_date
+        data_type: date
+        constraints: [{type: not_null}]
+      - name: open_price
+        data_type: decimal(28,8)
+      - name: high_price
+        data_type: decimal(28,8)
+      - name: low_price
+        data_type: decimal(28,8)
+      - name: close_price
+        data_type: decimal(28,8)
+        data_tests:
+          - expression_is_true: {arguments: {expression: "close_price > 0"}}
+      - name: base_volume
+        data_type: decimal(38,8)
+      - name: quote_volume_usdt
+        data_type: decimal(38,8)
+      - name: number_of_trades
+        data_type: bigint
+      - name: minutes_observed
+        data_type: bigint
+      - name: daily_return
+        data_type: double
+        description: close / previous close - 1. NULL on each coin's first day.
+        data_tests:
+          # A >90% one-day crash or >300% pump is far more likely a data bug than a market move.
+          - expression_is_true:
+              arguments: {expression: "daily_return is null or daily_return between -0.9 and 3"}
+      - name: log_return
+        data_type: double
+      - name: taker_buy_ratio
+        data_type: double
+        data_tests:
+          - expression_is_true:
+              arguments: {expression: "taker_buy_ratio is null or taker_buy_ratio between 0 and 1"}
+      - name: sma_7d
+        data_type: double
+      - name: sma_30d
+        data_type: double
+      - name: volatility_30d_annualized
+        data_type: double
+      - name: avg_quote_volume_7d
+        data_type: double
+      - name: drawdown_from_peak
+        data_type: double
+        data_tests:
+          - expression_is_true: {arguments: {expression: "drawdown_from_peak <= 0"}}
+
+  - name: fct_monthly_returns
+    description: Monthly open/close/return per coin.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [coin_key, month_start]}
+
+  - name: mart_coin_performance
+    description: One-row-per-coin scorecard - return, volatility, Sharpe, max drawdown, best/worst day.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - {name: coin_key, data_type: bigint, data_tests: [unique, not_null]}
+      - {name: symbol, data_type: varchar}
+      - {name: coin_name, data_type: varchar}
+      - {name: market_cap_rank, data_type: bigint}
+      - {name: first_date, data_type: date}
+      - {name: last_date, data_type: date}
+      - {name: start_price, data_type: double}
+      - {name: end_price, data_type: double}
+      - {name: period_return, data_type: double}
+      - {name: annualized_volatility, data_type: double}
+      - {name: sharpe_ratio, data_type: double}
+      - name: max_drawdown
+        data_type: double
+        data_tests:
+          - expression_is_true: {arguments: {expression: "max_drawdown between -1 and 0"}}
+      - {name: best_day, data_type: date}
+      - {name: best_day_return, data_type: double}
+      - {name: worst_day, data_type: date}
+      - {name: worst_day_return, data_type: double}
+      - {name: pct_up_days, data_type: double}
+      - {name: avg_daily_quote_volume_usdt, data_type: double}
+      - {name: return_rank, data_type: bigint}
+
+  - name: mart_btc_correlation
+    description: Correlation and beta of each coin's daily log returns vs BTC.
+    columns:
+      - name: correlation_with_btc
+        data_tests:
+          - expression_is_true: {arguments: {expression: "correlation_with_btc between -1.000001 and 1.000001"}}
+
+  - name: mart_weekday_seasonality
+    description: Average return and volume by day of week, per coin.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [symbol, day_of_week]}
+
+  - name: mart_hourly_volume_profile
+    description: Share of each coin's traded volume by hour of day (UTC and IST).
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [coin_key, hour_utc]}

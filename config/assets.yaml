@@ -1,0 +1,37 @@
+# Single source of truth for WHAT we ingest.
+# Every job (batch, streaming, dbt seeds) reads this file, so adding a coin = one line here.
+#
+# symbol        -> Binance trading pair (all quoted in USDT so prices are comparable)
+# coingecko_id  -> CoinGecko's id for the same coin (used for metadata: name, category, market cap)
+
+history:
+  interval: 1m            # Binance kline interval: 1m candles = 1,440 rows per coin per day
+  start_month: "2025-01"  # inclusive, YYYY-MM (monthly bulk files from data.binance.vision)
+  end_month: "2026-09"    # inclusive -> 21 months x 20 coins ~= 18.4M candles
+  # After end_month, the Airflow DAG takes over with daily files (dags/crypto_lakehouse_daily.py).
+
+assets:
+  - { symbol: BTCUSDT,  coingecko_id: bitcoin }
+  - { symbol: ETHUSDT,  coingecko_id: ethereum }
+  - { symbol: BNBUSDT,  coingecko_id: binancecoin }
+  - { symbol: SOLUSDT,  coingecko_id: solana }
+  - { symbol: XRPUSDT,  coingecko_id: ripple }
+  - { symbol: ADAUSDT,  coingecko_id: cardano }
+  - { symbol: DOGEUSDT, coingecko_id: dogecoin }
+  - { symbol: TRXUSDT,  coingecko_id: tron }
+  - { symbol: AVAXUSDT, coingecko_id: avalanche-2 }
+  - { symbol: LINKUSDT, coingecko_id: chainlink }
+  - { symbol: DOTUSDT,  coingecko_id: polkadot }
+  - { symbol: LTCUSDT,  coingecko_id: litecoin }
+  - { symbol: BCHUSDT,  coingecko_id: bitcoin-cash }
+  - { symbol: XLMUSDT,  coingecko_id: stellar }
+  - { symbol: ATOMUSDT, coingecko_id: cosmos }
+  - { symbol: UNIUSDT,  coingecko_id: uniswap }
+  - { symbol: ETCUSDT,  coingecko_id: ethereum-classic }
+  - { symbol: FILUSDT,  coingecko_id: filecoin }
+  - { symbol: NEARUSDT, coingecko_id: near }
+  - { symbol: APTUSDT,  coingecko_id: aptos }
+
+# Symbols the real-time lane (Phase 6) subscribes to. Keep it small on a laptop.
+streaming:
+  symbols: [BTCUSDT, ETHUSDT, SOLUSDT]

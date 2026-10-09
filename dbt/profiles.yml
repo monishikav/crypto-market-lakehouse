@@ -1,0 +1,20 @@
+# dbt connection settings. Kept in the repo (no secrets: DuckDB is a local file).
+# Run dbt from this folder with:  dbt build --profiles-dir .
+crypto_lakehouse:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DBT_DUCKDB_PATH', '../data/crypto_lakehouse.duckdb') }}"
+      threads: 4
+      extensions: [delta]
+      settings:
+        # DuckDB defaults to the *machine's* timezone (IST on your laptop). Pin UTC so
+        # timestamp -> date conversions match Spark exactly.
+        TimeZone: UTC
+    ci:
+      type: duckdb
+      path: ":memory:"
+      threads: 4
+      settings:
+        TimeZone: UTC

@@ -1,0 +1,30 @@
+# Host (Windows) virtualenv: ingestion, Kafka producer, dbt, tests.
+# Spark/Delta and Airflow run inside Docker (see docker/), so they are NOT listed here.
+# Pinned versions were resolved and checked for Windows wheels on Python 3.11-3.13.
+
+# --- Phase 1: ingestion (Binance bulk files, CoinGecko API, S3 upload) ---
+requests==2.34.2
+python-dotenv==1.2.4
+pyyaml==6.0.3
+tqdm==4.70.1
+boto3==1.43.109
+
+# --- Local analytics / file formats ---
+pandas==2.3.3
+pyarrow==25.0.1
+duckdb==1.5.6
+
+# --- Phase 6: real-time lane (websocket -> Kafka) ---
+websocket-client==1.9.2
+confluent-kafka==2.16.0
+
+# --- Phase 4: dbt (DuckDB adapter locally; Athena adapter added in Phase 3/4 if using AWS) ---
+dbt-core==1.12.5
+dbt-duckdb==1.11.0
+
+# --- Dashboard over the dbt marts ---
+streamlit==1.65.0
+
+# --- Phase 7: quality gates ---
+pytest==9.1.1
+ruff==0.16.10
